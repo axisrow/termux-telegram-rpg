@@ -12,4 +12,6 @@ COPY . .
 # Переменная окружения для файла данных (в корне проекта, не в modules/data!)
 ENV DATA_FILE=/app/players_rpg.json
 
+EXPOSE 8080
+
 CMD ["python", "bot.py"]

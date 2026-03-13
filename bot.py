@@ -7,6 +7,7 @@ import logging
 import os
 from dotenv import load_dotenv
 
+from aiohttp import web
 from aiogram import Bot, Dispatcher
 
 from handlers import (
@@ -45,6 +46,11 @@ dp.include_router(story_router)
 dp.include_router(features_router)  # Новые фичи: достижения, питомцы, казино, крафт
 
 
+async def health_handler(request: web.Request) -> web.Response:
+    """Healthcheck endpoint для Sliplane."""
+    return web.Response(text="OK")
+
+
 async def main() -> None:
     """Главная функция запуска бота."""
     logging.basicConfig(
@@ -53,8 +59,17 @@ async def main() -> None:
     )
     logging.getLogger("aiogram").setLevel(logging.DEBUG)
     print("🤖 Termux RPG Bot запускается...")
-    print("📡 Начинаем polling...")
 
+    # Запуск HTTP сервера для healthcheck
+    app = web.Application()
+    app.router.add_get("/", health_handler)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", int(os.getenv("PORT", 8080)))
+    await site.start()
+    print("✅ Healthcheck сервер запущен на порту", os.getenv("PORT", 8080))
+
+    print("📡 Начинаем polling...")
     try:
         await dp.start_polling(bot)
     except Exception as e:
@@ -62,6 +77,8 @@ async def main() -> None:
         import traceback
         traceback.print_exc()
         raise
+    finally:
+        await runner.cleanup()
 
 
 if __name__ == "__main__":
